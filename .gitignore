@@ -2,4 +2,6 @@ Fast-Neural-Style-Transfer/content/train2014_5000
 Fast-Neural-Style-Transfer/content/train2014
 models
 .vscode
-
+.ipynb_checkpoints
+__pycache__
+.~*

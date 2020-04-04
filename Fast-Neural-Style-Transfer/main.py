@@ -27,48 +27,16 @@ import matplotlib.pyplot as plt
 
 
 style_images = glob.glob('styles/*.jpg')
-print(style_images)
+#print(style_images)
 image = imread(style_images[1])
-print(image.shape)
-plt.imshow(image)
+#print(image.shape)
+#plt.imshow(image)
 
 
-# ## 加载图格图片
-
-# In[3]:
-
-
-
-def resize_and_crop(image, image_size):
-    h = image.shape[0]
-    w = image.shape[1]
-    if h > w:
-        image = image[h//2 - w//2 : h//2 + w//2, : , :]
-    elif h < w:
-        image = image[: , w//2 - h//2 : w//2 + h//2, :]
-    image = cv2.resize(image, (image_size, image_size))
-    return image
-
-X_data = []
-image_size = 256
-paths = glob.glob('content/train2014/*.jpg')
-'''
-for i in tqdm(range(len(paths))):
-    image = imread(paths[i])
-    if len(image.shape) < 3: # 筛掉黑白图片
-        continue
-    X_data.append(resize_and_crop(image, image_size))
-plt.imshow(X_data[-1])
-X_data = np.array(X_data)
-print(X_data.shape)
-np.save('content/train2014_2000.npy', X_data)
-'''
-
-
+# ## 加载图片
 # In[4]:
 
-
-X_data = np.load('content/train2014_2000.npy')
+X_data = np.load('content/train2014_5000.preprocessing.npy')
 
 
 # In[5]:
@@ -157,7 +125,12 @@ style_endpoints = vgg_endpoints(X_style - MEAN_VALUES)
 STYLE_LAYERS = ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']
 style_features = {}
 
-sess = tf.Session()
+# tensorflow 用gpu训练时，默认占用所有gpu的显存，
+# 
+tf_config = tf.ConfigProto()
+tf_config.gpu_options.allow_growth=True
+
+sess = tf.Session(config = tf_config)
 for layer_name in STYLE_LAYERS:
     features = sess.run(style_endpoints[layer_name], feed_dict={X_style: X_style_data})
     features = np.reshape(features, (-1, features.shape[3]))
@@ -172,7 +145,7 @@ for layer_name in STYLE_LAYERS:
 
 
 # 这个cell 只需调用一次，重复调用会出错
-batch_size = 4
+batch_size = 1 # 原本是４，但显存会不够。
 X = tf.placeholder(dtype=tf.float32, shape=[None, None, None, 3], name='X')
 k_initializer = tf.truncated_normal_initializer(0, 0.1)
 
