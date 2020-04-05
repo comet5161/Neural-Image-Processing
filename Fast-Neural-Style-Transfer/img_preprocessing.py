@@ -33,7 +33,7 @@ def resize_and_crop(image, image_size):
 if __name__ == '__main__':
     X_data = []
     
-    paths = glob.glob('content/train2014_5000/*.jpg')
+    paths = glob.glob('train/train2014_5000/*.jpg')
 
     for i in tqdm(range(len(paths))):
         image = imread(paths[i])
@@ -43,5 +43,5 @@ if __name__ == '__main__':
     #plt.imshow(X_data[-1])
     X_data = np.array(X_data)
     #print(X_data.shape)
-    np.save('content/train2014_5000.preprocessing.npy', X_data)
+    np.save('train/train2014_5000.preprocessing.npy', X_data)
 

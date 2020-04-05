@@ -16,15 +16,18 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from img_preprocessing import resize_and_crop
 from img_preprocessing import image_size
+from build_transfer_graph import GetTransferGraph
 #get_ipython().run_line_magic('matplotlib', 'inline')
 
 
 # ## 查看风格图片
 style_images = glob.glob('styles/*.jpg')
 style_img_path = style_images[2]
+style_img_path = 'styles/anime_your_name.jpeg'
+#style_img_path = 'styles/wave.jpg'
 
 # ## 加载图片
-X_data = np.load('content/train2014_5000.preprocessing.npy')
+X_data = np.load('train/train2014_5000.preprocessing.npy')
 
 # # 加载vgg19模型，将模型中的参数设为常量
 vgg = scipy.io.loadmat('models/imagenet-vgg-verydeep-19.mat')
@@ -105,60 +108,10 @@ for layer_name in STYLE_LAYERS:
 # ## 构造转换网络，为卷积、残差、逆卷积结构
 
 # In[10]:
-
-
-# 这个cell 只需调用一次，重复调用会出错
-batch_size = 1 # 原本是４，但显存会不够。
-X = tf.placeholder(dtype=tf.float32, shape=[None, None, None, 3], name='X')
-k_initializer = tf.truncated_normal_initializer(0, 0.1)
-
-def relu(x):
-    return tf.nn.relu(x)
-
-def conv2d(inputs, filters, kernel_size = 3, strides = 1):
-    p = int(kernel_size / 2)
-    #填充边缘
-    h0 = tf.pad(inputs, [[0, 0], [p, p], [p, p], [0, 0]], mode='reflect')
-    #conv = tf.keras.layers.Conv2D(filters=filters, kernel_size=kernel_size, strides=strides, padding='valid', kernel_initializer=k_initializer)
-    #return conv(inputs)
-    return tf.layers.conv2d(inputs=h0, filters=filters, kernel_size=kernel_size, strides=strides, padding='valid', kernel_initializer=k_initializer)
-
-
-def deconv2d(inputs, filters, kernel_size = 3, strides = 1):
-    shape = tf.shape(inputs)
-    height, width = shape[1], shape[2]
-    # 近邻插值法，
-    h0 = tf.image.resize_images(inputs, [height * strides * 2, width * strides * 2], tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-    return conv2d(h0, filters, kernel_size, strides)
-
-# 正则化
-# Batch_Norm是在一个Batch内不同样本在的标准化，而instance_norm在一个样本内的标准化。
-def instance_norm(inputs):
-    return tf.contrib.layers.instance_norm(inputs)
-    # return tfa.layers.InstanceNormalization(inputs)
-# 残差网络
-def residual(inputs, filters = 128, kernel_size = 3):
-    h0 = relu(conv2d(inputs, filters, kernel_size, 1))
-    h0 = conv2d(h0, filters, kernel_size, 1)
-    return tf.add(inputs, h0)
-
-with tf.variable_scope('transformer', reuse=None):
-    h0 = tf.pad(X - MEAN_VALUES, [[0, 0], [10, 10], [10, 10], [0, 0]], mode='reflect')
-    #print(conv2d(h0, 32, 9, 1))
-    h0 = relu(instance_norm(conv2d(h0, 32, 9, 1)))
-    h0 = relu(instance_norm(conv2d(h0, 64, 3, 2)))
-    h0 = relu(instance_norm(conv2d(h0, 128, 3, 2)))
-
-    for i in range(5):
-        h0 = residual(h0, 128, 3)
-
-    h0 = relu(instance_norm(deconv2d(h0, 64, 3, 2)))
-    h0 = relu(instance_norm(deconv2d(h0, 32, 3, 2)))
-    h0 = tf.nn.tanh(instance_norm(conv2d(h0, 3, 9, 1)))
-    h0 = (h0 + 1) / 2 * 255.
-    shape = tf.shape(h0)
-    g = tf.slice(h0, [0, 10, 10, 0], [-1, shape[1] - 20, shape[2] - 20, -1], name='g')
-
+with tf.variable_scope('Inputs'):
+    X = tf.placeholder(dtype=tf.float32, shape=[None, None, None, 3], name='X')
+#  只需调用一次，重复调用会出错
+g = GetTransferGraph(tf, X)
 
 # ## 将迁移图片和原始图片输入到 vgg19，得到各自对应输出
 # ### 计算内容损失
@@ -215,7 +168,9 @@ optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss, var_list=
 # ## 训练模型
 # In[20]:
 
-style_name = style_img_path[style_img_path.find('/') + 1:].rstrip('.jpg')
+#style_name = style_img_path[style_img_path.find('/') + 1:].rstrip('.jpg')
+style_name = os.path.basename(style_img_path)
+style_name = os.path.splitext(style_name)[0]
 OUTPUT_DIR = 'models/style_%s' % style_name
 if not os.path.exists(OUTPUT_DIR):
     os.mkdir(OUTPUT_DIR)
@@ -240,15 +195,27 @@ X_sample = imread('content/0.jpg')
 h_sample = X_sample.shape[0]
 w_sample = X_sample.shape[1]
 
+# In[]
+
+batch_size = 1 # 原本是４，但显存会不够。
+# tf_vars = tf.global_variables()
+# var_to_save = [var for var in tf_vars if 'transformer' in var.name]
+# saver = tf.train.Saver(var_to_save)
 saver = tf.train.Saver()
+#saver.save(sess, 'models/transfer_model')
 for e in range(epochs):
     data_index = np.arange(X_data.shape[0])
     np.random.shuffle(data_index)
     X_data = X_data[data_index]
     
-    for i in tqdm(range(X_data.shape[0] // batch_size)):
+    #for i in tqdm(range(X_data.shape[0] // batch_size)):
+    train_range = range(X_data.shape[0] // batch_size)
+    train_range = range(10)
+    for i in tqdm(train_range):
         X_batch = X_data[i * batch_size: i * batch_size + batch_size]
-        ls_, _ = sess.run([loss, optimizer], feed_dict={X: X_batch})
+        run_option = tf.RunOptions()
+        run_option.report_tensor_allocations_upon_oom = True
+        ls_, _ = sess.run([loss, optimizer], feed_dict={X: X_batch}, options = run_option)
         losses.append(ls_)
         
         if i > 0 and i % 20 == 0:
@@ -267,7 +234,7 @@ for e in range(epochs):
     # plt.imshow(result)
     # plt.show()
     imsave(os.path.join(OUTPUT_DIR, 'sample_epoch_%d.jpg' % e), result)
-    saver.save(sess, os.path.join(OUTPUT_DIR, 'trained_model_epoch_%d'% e))
+    saver.save(sess, os.path.join(OUTPUT_DIR, 'trained_model'), global_step = e,  write_meta_graph = False)
 
 
 # ## 保存模型
