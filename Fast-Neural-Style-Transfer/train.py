@@ -24,16 +24,17 @@ import sys, getopt
 def main(argv):
     batch_size = 1 # 原本是４，但显存会不够。
     epochs = 3
+    max_train_samples = 1000*1000*1000
 
     # ## 查看风格图片
     style_images = glob.glob('styles/*.jpg')
     style_img_path = style_images[2]
-    style_img_path = 'styles/anime_your_name.jpeg'
+    style_img_path = 'styles/tree.jpg'
     #style_img_path = 'styles/wave.jpg'
 
     #解析命令行参数
     try:
-        opts, args = getopt.getopt(argv, '', ['style_img=', 'epochs=', 'batch_size='])
+        opts, args = getopt.getopt(argv, '', ['style_img=', 'epochs=', 'batch_size=', 'max_train_samples='])
     except getopt.GetoptError:
         print('train.py style_img=/path/to/img.jpg epochs=3 batch_size=1 ')
         sys.exit(2)
@@ -48,18 +49,20 @@ def main(argv):
             epochs = int(arg)
         elif(opt == '--batch_size'):
             batch_size = int(arg)
+        elif(opt == '--max_train_samples'):
+            max_train_samples = int(arg)
 
 
     # ## 加载图片
     X_data = np.load('train/train2014_5000.preprocessing.npy')
 
     # # 加载vgg19模型，将模型中的参数设为常量
-    vgg = scipy.io.loadmat('models/imagenet-vgg-verydeep-19.mat')
+    vgg = scipy.io.loadmat('train/imagenet-vgg-verydeep-19.mat')
     vgg_layers = vgg['layers']
     #print(vgg_layers.shape)
 
     def vgg_endpoints(inputs, reuse=None):
-        with tf.variable_scope('endpoints', reuse=reuse): #模型中的变量都在变量空间endpoints里
+        with tf.variable_scope('vgg_19', reuse=reuse): #模型中的变量都在变量空间vgg_endpoints里
             def _weights(layer, expected_layer_name):
                 W = vgg_layers[0][layer][0][0][2][0][0]
                 b = vgg_layers[0][layer][0][0][2][0][1]
@@ -109,8 +112,11 @@ def main(argv):
 
     MEAN_VALUES = np.array([123.68, 116.779, 103.939]).reshape((1, 1, 1, 3)) # 通道颜色均值
 
-    X_style = tf.placeholder(dtype=tf.float32, shape=X_style_data.shape, name='X_style')
-    style_endpoints = vgg_endpoints(X_style - MEAN_VALUES)
+    with tf.variable_scope('Style_input'):
+        X_style = tf.placeholder(dtype=tf.float32, shape=X_style_data.shape, name='X_style')
+        
+    with tf.variable_scope('style_vgg'):
+        style_endpoints = vgg_endpoints(X_style - MEAN_VALUES)
     STYLE_LAYERS = ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']
     style_features = {}
 
@@ -121,6 +127,7 @@ def main(argv):
     tf_config.gpu_options.per_process_gpu_memory_fraction = 0.6
 
     sess = tf.Session(config = tf_config)
+
     for layer_name in STYLE_LAYERS:
         features = sess.run(style_endpoints[layer_name], feed_dict={X_style: X_style_data})
         features = np.reshape(features, (-1, features.shape[3]))
@@ -132,7 +139,7 @@ def main(argv):
     # ## 构造转换网络，为卷积、残差、逆卷积结构
 
     # In[10]:
-    with tf.variable_scope('Inputs'):
+    with tf.variable_scope('Content_inputs'):
         X = tf.placeholder(dtype=tf.float32, shape=[None, None, None, 3], name='X')
     #  只需调用一次，重复调用会出错
     g = GetTransferGraph(tf, X)
@@ -141,32 +148,36 @@ def main(argv):
     # ### 计算内容损失
 
     CONTENT_LAYER = 'conv3_3'
-    content_endpoints = vgg_endpoints(X - MEAN_VALUES, True)
-    g_endpoints = vgg_endpoints(g - MEAN_VALUES, True)
+    with tf.variable_scope('content_vgg'):
+        content_endpoints = vgg_endpoints(X - MEAN_VALUES, True)
+    with tf.variable_scope('generate_vgg'):
+        g_endpoints = vgg_endpoints(g - MEAN_VALUES, True)
 
     def get_content_loss(endpoints_x, endpoints_y, layer_name):
         x = endpoints_x[layer_name]
         y = endpoints_y[layer_name]
         return 2 * tf.nn.l2_loss(x-y) / tf.to_float(tf.size(x))
 
-    content_loss = get_content_loss(content_endpoints, g_endpoints, CONTENT_LAYER)
+    with tf.variable_scope('Content_loss'):
+        content_loss = get_content_loss(content_endpoints, g_endpoints, CONTENT_LAYER)
+        tf.identity(content_loss, name='content_loss')
 
 
     # ## 计算风格损失
 
     style_loss = []
-    for layer_name in STYLE_LAYERS:
-        layer = g_endpoints[layer_name]
-        shape = tf.shape(layer)
-        bs, height, width, channel = shape[0], shape[1], shape[2], shape[3]
-        
-        features = tf.reshape(layer, (bs, height * width, channel))
-        gram = tf.matmul(tf.transpose(features, (0,2,1)), features) / tf.to_float(height * width * channel)
-        
-        style_gram = style_features[layer_name]
-        style_loss.append(2 * tf.nn.l2_loss(gram - style_gram) / tf.to_float(tf.size(layer)))
-        
-    style_loss = tf.reduce_sum(style_loss)
+    with tf.variable_scope('Style_loss'):
+        for layer_name in STYLE_LAYERS:
+            layer = g_endpoints[layer_name]
+            shape = tf.shape(layer)
+            bs, height, width, channel = shape[0], shape[1], shape[2], shape[3]
+            
+            features = tf.reshape(layer, (bs, height * width, channel))
+            gram = tf.matmul(tf.transpose(features, (0,2,1)), features) / tf.to_float(height * width * channel)
+            
+            style_gram = style_features[layer_name]
+            style_loss.append(2 * tf.nn.l2_loss(gram - style_gram) / tf.to_float(tf.size(layer)))
+        style_loss = tf.reduce_sum(style_loss, name = 'style_loss')
 
 
     # ## 计算全变差正则， 得到总损失函数
@@ -176,12 +187,19 @@ def main(argv):
         w = inputs[:, :, 1:, :]
         return tf.nn.l2_loss(h) / tf.to_float(tf.size(h)) + tf.nn.l2_loss(w) / tf.to_float(tf.size(w))
 
-    total_variation_loss = get_total_variation_loss(g)
+    with tf.variable_scope('Variation_loss'):
+        total_variation_loss = get_total_variation_loss(g)
+        tf.identity(total_variation_loss, name='variation_loss')
 
     content_weight = 1
     style_weight = 250
     total_variation_weight = 0.01
-    loss = content_weight * content_loss + style_weight * style_loss + total_variation_weight * total_variation_loss
+    with tf.variable_scope('Total_loss'):
+        weighted_content_loss = tf.identity( content_weight * content_loss, name='weighted_content_loss')
+        weighted_style_loss = tf.identity(style_weight * style_loss, name='weighted_style_loss')
+        weighted_variation_loss = tf.identity(total_variation_weight * total_variation_loss, name='weighted_variation_loss')
+        loss =  weighted_content_loss + weighted_style_loss + weighted_variation_loss
+        tf.identity(loss, 'total_loss')
 
 
     # ## 定义优化器
@@ -203,9 +221,9 @@ def main(argv):
     tf.summary.scalar('losses/style_loss', style_loss)
     tf.summary.scalar('losses/total_variation_loss', total_variation_loss)
     tf.summary.scalar('losses/loss', loss)
-    tf.summary.scalar('weighted_losses/weighted_content_loss', content_weight * content_loss)
-    tf.summary.scalar('weighted_losses/weighted_style_loss', style_weight * style_loss)
-    tf.summary.scalar('weighted_losses/weighted_total_variation_loss', total_variation_weight * total_variation_loss)
+    tf.summary.scalar('weighted_losses/weighted_content_loss', weighted_content_loss)
+    tf.summary.scalar('weighted_losses/weighted_style_loss', weighted_style_loss)
+    tf.summary.scalar('weighted_losses/weighted_total_variation_loss', weighted_variation_loss)
     tf.summary.image('transformed', g)
     tf.summary.image('origin', X)
     summary = tf.summary.merge_all()
@@ -221,6 +239,7 @@ def main(argv):
 
     # In[]
 
+    writer = tf.summary.FileWriter('train/', sess.graph)
     
     # tf_vars = tf.global_variables()
     # var_to_save = [var for var in tf_vars if 'transformer' in var.name]
@@ -234,6 +253,8 @@ def main(argv):
         
         #for i in tqdm(range(X_data.shape[0] // batch_size)):
         train_range = range(X_data.shape[0] // batch_size)
+        if( max_train_samples < X_data.shape[0]):
+            train_range = range(max_train_samples //batch_size)
         #train_range = range(10)
         for i in tqdm(train_range):
             X_batch = X_data[i * batch_size: i * batch_size + batch_size]
@@ -260,6 +281,7 @@ def main(argv):
         imsave(os.path.join(OUTPUT_DIR, 'sample_epoch_%d.jpg' % e), result)
         saver.save(sess, os.path.join(OUTPUT_DIR, 'trained_model'), global_step = e,  write_meta_graph = False)
 
+    writer.close()
 
 if(__name__ == '__main__'):
     main(sys.argv[1:])
