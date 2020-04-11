@@ -15,12 +15,11 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from build_transfer_graph import GetTransferGraph
 
+tf.reset_default_graph()
 X = tf.placeholder(dtype=tf.float32, shape=[None, None, None, 3], name='X')
 g = GetTransferGraph(tf, X)
 
-# In[]
-h_step = 800
-w_step = 300
+
 
 def addPostfix(filename, postfix):
     ary = os.path.splitext(filename)
@@ -28,15 +27,28 @@ def addPostfix(filename, postfix):
         return filename + postfix
     return ary[0] + postfix + ary[1]
 
+# In[]
+# 
+h_step = 800
+w_step = 400
+edge = 40 #边缘重叠的像素长度
+
 def splitImage(img):
     units = []
     h = img.shape[0]
     w = img.shape[1]
+    
     for i in range(0, h, h_step):
-        i_end = min(h, i + h_step)
+        if(i + edge >= h): 
+            break
+        up = max(i - edge, 0)
+        down = min(i + h_step + edge, h)
         for j in range(0, w, w_step):
-            j_end = min(w, j + w_step)
-            unit = img[i:i_end, j:j_end, :]
+            if(j + edge >= w):
+                break
+            left = max(j - edge, 0)
+            right = min(j + w_step + edge, w)
+            unit = img[up : down, left : right, :]
             units.append(unit)
     return units
             
@@ -48,15 +60,39 @@ def mergeImage(units, shape):
     img = np.ones(shape)
     idx = 0
     for i in range(0, h, h_step):
-        i_end = min(h, i + h_step)
+        if(i + edge >= h):
+            break
+        i_offset = edge
+        if( i == 0):
+            i_offset = 0
+        i_end = min(h, i + h_step + edge)
         for j in range(0, w, w_step):
-            j_end = min(w, j + w_step)
-            print("unit shape: " + units[idx].shape)
-            img[i:i_end, j:j_end, 0:c] = units[idx]
+            if(j + edge >= w):
+                break
+            j_offset = edge
+            if(j == 0):
+                j_offset = 0
+            j_end = min(w, j + w_step + edge)
+            print("unit shape: " + str(units[idx].shape) )
+            img[i:i_end, j:j_end, 0:c] = units[idx][i_offset:, j_offset:, :]
+
+            #重叠部分平滑过渡
+            if(j_offset > 0):
+                print('j_offset')
+                for k in range(edge):
+                    p = k/(edge-1)
+                    img[i:i_end, j - 1 - k, :] = img[i:i_end, j - 1 - k, :]*(p) + units[idx][i_offset:, j_offset - 1 - k, : ]*(1-p)
+            if(i_offset > 0):
+                for k in range(edge):
+                    p = k/(edge-1)
+                    img[i - 1 - k, j:j_end, :] = img[i - 1 - k, j : j_end, :]*(p) + units[idx][i - 1 - k:, j_offset :, : ]*(1-p)
+
             idx += 1
     return img
 
+# # Test
 # a = imread('content/fudan.png')
+# # a = imread('content/fudan_style_tree.png')
 # b = splitImage(a)
 
 # k = 0

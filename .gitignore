@@ -16,3 +16,7 @@ Fast-Neural-Style-Transfer/train/imagenet-vgg-verydeep-19.mat
 Fast-Neural-Style-Transfer/static/bigjpg.com.zip
 Fast-Neural-Style-Transfer/Untitled.ipynb
 Fast-Neural-Style-Transfer/audio.js
+Fast-Neural-Style-Transfer/content/*_style_*.png
+Fast-Neural-Style-Transfer/content/*_style_*.jpg
+Fast-Neural-Style-Transfer/content/*_style_*.jpeg
+Fast-Neural-Style-Transfer/content/tmp/*
