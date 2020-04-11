@@ -6,3 +6,13 @@ Fast-Neural-Style-Transfer/train/train2014
 .ipynb_checkpoints
 __pycache__
 .~*
+events.out*
+/Fast-Neural-Style-Transfer/uploads
+/Fast-Neural-Style-Transfer/static/img/*
+Fast-Neural-Style-Transfer/temp.py
+Fast-Neural-Style-Transfer/static/bigjpg.com/*
+Fast-Neural-Style-Transfer/train/train2014_*
+Fast-Neural-Style-Transfer/train/imagenet-vgg-verydeep-19.mat
+Fast-Neural-Style-Transfer/static/bigjpg.com.zip
+Fast-Neural-Style-Transfer/Untitled.ipynb
+Fast-Neural-Style-Transfer/audio.js
