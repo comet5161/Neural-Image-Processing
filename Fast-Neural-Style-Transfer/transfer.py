@@ -85,7 +85,7 @@ def mergeImage(units, shape):
             if(i_offset > 0):
                 for k in range(edge):
                     p = k/(edge-1)
-                    img[i - 1 - k, j:j_end, :] = img[i - 1 - k, j : j_end, :]*(p) + units[idx][i - 1 - k:, j_offset :, : ]*(1-p)
+                    img[i - 1 - k, j:j_end, :] = img[i - 1 - k, j : j_end, :]*(p) + units[idx][i_offset - 1 - k, j_offset :, : ]*(1-p)
 
             idx += 1
     return img
