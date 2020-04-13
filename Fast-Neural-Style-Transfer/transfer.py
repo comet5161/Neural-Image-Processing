@@ -30,7 +30,7 @@ def addPostfix(filename, postfix):
 # In[]
 # 
 h_step = 800
-w_step = 400
+w_step = 300
 edge = 40 #边缘重叠的像素长度
 
 def splitImage(img):

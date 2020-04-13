@@ -17,7 +17,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="http://bigjpg.com" />
     <meta property="og:image" content="http://bigjpg.com/static/css/og.jpg" />
-    <link rel="icon" href="/htdocs/favicon.ico">
+    <link rel="icon" href="favicon.png">
     <link rel="apple-touch-icon" href="/css/touch-icon-iphone.png">
     <link rel="apple-touch-icon" sizes="152x152" href="/css/touch-icon-ipad.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/css/touch-icon-iphone-retina.png">
@@ -39,10 +39,15 @@
       <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
       <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
+    <link rel="stylesheet" href="jquery-ui/1.10.4/jquery-ui.css">
+    <link rel="stylesheet" href="jquery-ui/style.css">
+    <script type="text/javascript" src="/js/jquery-3.2.1.min.js"></script>
+    <script src="jquery-ui/1.10.4/jquery-ui.js"></script>
 </head>
 
 <body>
-    <script type="text/javascript" src="/js/jquery-3.2.1.min.js"></script>
+    
+    
     <script type="text/javascript" src="/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="/js/pace.min.js"></script>
     <script src="https://bigjpg.oss-cn-shenzhen.aliyuncs.com/aliyun-oss-sdk.min.js"></script>
@@ -83,8 +88,7 @@
                             <input type="file" name="file" id = "file_upload"  accept="image/png,image/jpeg,image/jpg" value=""   style="display: none;">
                             <!-- <input type="button" value="上传" id="upFileBtn" onclick="up_file();" hidden> -->
                             <p class="lead">图片限制：文件大小 1MB，尺寸 1000x1000px</p>
-                            <img ></img>
-                            <a href="" data-toggle="modal" data-target="#modal_login" class="login_inquery">想要? 登录!</a>
+                            <!-- <a href="" data-toggle="modal" data-target="#modal_login" class="login_inquery">想要? 登录!</a> -->
                         </div>
                     </form>
               </div>
@@ -93,6 +97,12 @@
         </div>
         <div id="files"></div>
         <div class="batch-box"><button class="btn btn-success" onclick="batch_download()">批量下载</button></div>
+
+
+        <ol id="style_list"">
+            <li class="ui-widget-content" hidden> 风格 1</li>
+          </ol>
+
         <hr>
 
         <div class="row marketing">

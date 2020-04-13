@@ -1650,7 +1650,8 @@ p {
 }
 
 .lead {
-    margin-bottom: 23px;
+    margin-bottom: 15px;
+    margin-top: 15px;
     font-size: 14px;
     font-weight: 300;
     line-height: 1.4
