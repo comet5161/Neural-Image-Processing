@@ -1,5 +1,6 @@
 // zip.workerScriptsPath = '/js/';
 
+
 var URL = window.URL || window.webkitURL;
 
 var g_current_img = {
@@ -8,37 +9,24 @@ var g_current_img = {
     uploaded: false
 }
 
-var saveBlob = (function () {
-    var a = document.createElement("a");
-    document.body.appendChild(a);
-    a.style = "display: none";
-    return function (blob, fileName) {
-        var url = window.URL.createObjectURL(blob);
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        window.URL.revokeObjectURL(url);
-    };
-}());
-
-
-
-var get_suffix = function (f) {
-    return (f.lastIndexOf('.') != -1) ? f.substring(f.lastIndexOf('.')) : '';
-};
-
-var generate_object_name = function (filename) {
-    var d = new Date();
-    return 'upload/' + d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() + '/' + d
-    .getTime() + Math.random() + get_suffix(filename);
-};
+var body2 = ""
 
 $(document).ready(function () {
+    body2 = $('body').clone();
+
     $.ajaxSetup({
         cache: false
     });
 
+    //从服务端获取风格类型
     getStyleList();
+
+    //显示大图
+    $("#style_list").delegate('img', 'click', function(){  
+        var _this = $(this);//将当前的pimg元素作为_this传入函数  
+        imgShow("#outerdiv", "#innerdiv", "#bigimg", _this);  
+        console.log('click img');
+    });
 
     $('#file_upload').change(function () {
         file_change(this.files);
@@ -57,16 +45,28 @@ $(document).ready(function () {
         file_change(e.originalEvent.dataTransfer.files);
     });
 
-    $(function() {
-        $( "#style_list" ).selectable({
-            selected: function( event, ui ) {
-                let style_id = $(ui.selected).attr('style_id')
-                console.log('select style:' + style_id);
-                style_id = parseInt(  style_id  )
-                beginTransfer(style_id);
-              }
-        });
-     });
+    $('#style_list').delegate('.style_name', 'click', function(){
+        console.log( "select style:" + $(this).html());
+        let style_id = $(this).parent().attr('style_id')
+        if(style_id != undefined){
+            style_id = parseInt(  style_id  )
+            beginTransfer(style_id);
+        }
+    })
+
+    // $(function() {
+    //     $( "#style_list" ).selectable({
+    //         selected: function( event, ui ) {
+    //             let style_id = $(ui.selected).attr('style_id')
+    //             console.log('select style:' + style_id);
+    //             if(style_id != undefined){
+    //                 style_id = parseInt(  style_id  )
+    //                 beginTransfer(style_id);
+    //             }
+
+    //           }
+    //     });
+    //  });
 
 });
 
@@ -101,16 +101,16 @@ function getStyleList(){
             console.log(data) 
             if(data.status == "ok" &&  data.num > 0){
                 let parent = $('#style_list')
-                let first = parent.children('li:first')
+                let first = parent.children().first()
                 let next = first.clone();
                 next.removeAttr('hidden')
                 // parent.children('li:gt(0)').remove()
-                parent.children('li').remove()
+                parent.children().remove()
                 console.log(data.styles)
                 for(i = 0; i < data.num; i++){
                     style = data.styles[i]
                     console.log(style)
-                    next.html(style.name)
+                    next.find('li').html(style.name)
                     next.attr('style_id', style.id)
                     parent.append(next.clone())
                 }
@@ -171,10 +171,11 @@ function beginTransfer(style_id){
                 console.log("/api/begin_style_transfer success!")
                 console.log(data) 
                 if(data.status == "ok"){
-                    let elem = $("<img  alt='image'>");
-                    elem.attr('src',  data.url );
-                    elem.attr('class', 'img_upload')
-                    $("#style_list").children(`li[style_id=${data.style_id}]`).after(elem)
+                    let elem = $("#style_list").children(`[style_id=${data.style_id}]`)
+                    elem.find('img').attr('src',  data.url );
+                    elem.find('img').attr('class', 'img_upload')
+                    elem.find('img').removeAttr('hidden')
+                    //$("#style_list").children(`li[style_id=${data.style_id}]`).after(elem)
                     //$('#div_upload').append(elem);
                 }
         　}, 

@@ -26,13 +26,15 @@ table {
 #style_list {
 	list-style-type: none;
 	margin: 0;
-	padding: 0;
+	padding: 10px;
 	width: 100%;
+	border: 2px dashed #ccc;
+    border-radius: 10px;
 }
 
 #style_list li {
-	margin: 3px;
-	margin-top:0.8em;
+	margin-top:0.2em;
+	margin-bottom: 0.2em;
 	padding: 0.0em;
 	font-size: 1.4em;
 	height: 2em;
