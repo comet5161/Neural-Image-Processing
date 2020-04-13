@@ -41,3 +41,10 @@ table {
 	text-indent: 0.2em;
 	text-align: center;
 }
+
+.style_div {
+	border: 1px #ccc;
+}
+/* .style_name-hover {
+	
+} */

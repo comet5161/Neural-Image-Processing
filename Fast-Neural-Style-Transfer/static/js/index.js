@@ -22,7 +22,7 @@ $(document).ready(function () {
     getStyleList();
 
     //显示大图
-    $("#style_list").delegate('img', 'click', function(){  
+    $("body").delegate('.img_upload', 'click', function(){  
         var _this = $(this);//将当前的pimg元素作为_this传入函数  
         imgShow("#outerdiv", "#innerdiv", "#bigimg", _this);  
         console.log('click img');
@@ -53,20 +53,6 @@ $(document).ready(function () {
             beginTransfer(style_id);
         }
     })
-
-    // $(function() {
-    //     $( "#style_list" ).selectable({
-    //         selected: function( event, ui ) {
-    //             let style_id = $(ui.selected).attr('style_id')
-    //             console.log('select style:' + style_id);
-    //             if(style_id != undefined){
-    //                 style_id = parseInt(  style_id  )
-    //                 beginTransfer(style_id);
-    //             }
-
-    //           }
-    //     });
-    //  });
 
 });
 

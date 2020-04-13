@@ -37,7 +37,7 @@ def hello_world():
 
 @app.route('/api/get_styles_list', methods=['GET', 'POST'])
 def get_styles_info():
-        dirs = glob.glob('models/style_*')
+        dirs = glob.glob('models/style_*/')
         data = {}
         data["type"] = "styles_info"
         data["num"] = len(dirs)
@@ -45,7 +45,7 @@ def get_styles_info():
         data['status'] = "ok"
         i = 0
         for x in dirs:
-            basename = os.path.basename(x)
+            basename = os.path.basename(x[:-1])
             data["styles"].append({
                 "id": i,
                 "name": basename[len('style_'):]
@@ -62,7 +62,7 @@ def begin_transfer():
     style_id = int( json_data.get('style_id') )
     file_name = json_data.get('file_name')
 
-    style_name = glob.glob('models/style_*')[style_id]
+    style_name = glob.glob('models/style_*/')[style_id][:-1]
     style_name = os.path.basename(style_name)
 
     content_img_path = "uploads/" + file_name

@@ -25,7 +25,7 @@ def main(argv):
     batch_size = 1 # 原本是４，但显存会不够。
     epochs = 3
     max_train_samples = 1000*1000*1000
-
+    write_log = False
     # ## 查看风格图片
     style_images = glob.glob('styles/*.jpg')
     style_img_path = style_images[2]
@@ -51,6 +51,8 @@ def main(argv):
             batch_size = int(arg)
         elif(opt == '--max_train_samples'):
             max_train_samples = int(arg)
+        elif(opt == '--write_log'):
+            write_log = True
 
 
     # ## 加载图片
@@ -239,7 +241,8 @@ def main(argv):
 
     # In[]
 
-    writer = tf.summary.FileWriter('train/', sess.graph)
+    if(write_log):
+        writer = tf.summary.FileWriter('train/', sess.graph)
     
     # tf_vars = tf.global_variables()
     # var_to_save = [var for var in tf_vars if 'transformer' in var.name]
@@ -281,7 +284,8 @@ def main(argv):
         imsave(os.path.join(OUTPUT_DIR, 'sample_epoch_%d.jpg' % e), result)
         saver.save(sess, os.path.join(OUTPUT_DIR, 'trained_model'), global_step = e,  write_meta_graph = False)
 
-    writer.close()
+    if(write_log):
+        writer.close()
 
 if(__name__ == '__main__'):
     main(sys.argv[1:])
