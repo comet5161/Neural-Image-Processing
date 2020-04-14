@@ -1,12 +1,14 @@
 // zip.workerScriptsPath = '/js/';
 
+const bmf = new BMF();
 
 var URL = window.URL || window.webkitURL;
 
 var g_current_img = {
     name: "",
     upload_name: "",
-    uploaded: false
+    uploaded: false,
+    md5:""
 }
 
 var body2 = ""
@@ -69,7 +71,13 @@ function file_change(files) {
         console.log('upload ' + new Date().getTime());
 
         /* jQuery 版 */
-        uploadImg();
+
+        //获取md5
+        bmf.md5(file, function (err, md5) {
+            console.log("md5:" + md5); // 97027eb624f85892c69c4bcec8ab0f11
+            uploadImg(md5);
+        });
+        
         
     });
 }
@@ -113,15 +121,34 @@ function getStyleList(){
 }
 
 
-function uploadImg() {
+function uploadImg(md5) {
     console.log("upload " + new Date().getTime())
-    var formData = new FormData($('#uploadForm')[0]);
     $.ajax({
-        url:"/api/upload_img",
-        type: "POST",
+        url:"/api/is_file_exist",
+        type:"POST",
+        data: JSON.stringify({
+            md5: md5
+        }),
+        contentType:false,
+        success: function(data){
+            if(data.status == 'ok' && data.file_exist == 'true'){
+                console.log("file already exists!");
+                g_current_img.upload_name = data.file_name;
+                g_current_img.uploaded = true;
+            }
+            else{
+                beginUpload(md5);
+            }
+        }
+    })
+}
+
+function beginUpload(md5){
+    var formData = new FormData($('#uploadForm')[0]);
+    formData.set('md5', md5);
+    $.ajax({
+        url:"/api/upload_img", type: "POST",
         data: formData,
-        async: true,
-        cashe: false,
         contentType:false,
         processData:false,
         success:function (data) {
