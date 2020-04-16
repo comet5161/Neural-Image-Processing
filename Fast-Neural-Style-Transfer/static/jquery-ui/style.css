@@ -26,10 +26,10 @@ table {
 #style_list {
 	list-style-type: none;
 	margin: 0;
-	padding: 10px;
+	padding: 0;
 	width: 100%;
-	border: 2px dashed #ccc;
-    border-radius: 10px;
+/*	border: 2px dashed #ccc;
+    border-radius: 10px;*/
 }
 
 #style_list li {
@@ -40,10 +40,33 @@ table {
 	height: 2em;
 	text-indent: 0.2em;
 	text-align: center;
+	background-color: darkcyan;
+    color: white;
+
+ 	text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+#style_list li:hover
+{ 
+	opacity: 80%;
+}
+
+#style_list li:active
+{ 
+	opacity: 40%;
 }
 
 .style_div {
-	border: 1px #ccc;
+	/*border: 1px #ccc;*/
+
+	border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 0.5em;
+
+	margin-top: 1em;
+	margin-bottom: 1em;
+
 }
 /* .style_name-hover {
 	

@@ -9839,8 +9839,20 @@ h1 {
     /* width:auto;
     height: auto; */
     width: 100%;
+    max-height: 600px;
     padding: 1em;
     /* max-height: 100％; */
+    margin: 0 auto;
+}
+.img_center{
+    display: block;
+    object-fit: contain;
+    /* width:auto;
+    height: auto; */
+    width: 8em;
+    padding: 1em;
+    /* max-height: 100％; */
+    margin: 0 auto;
 }
 
 #label_upload{

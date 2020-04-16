@@ -22,7 +22,7 @@ function imgShow(outerdiv, innerdiv, bigimg, _this){
         var realWidth = this.width;//获取图片真实宽度  
         var realHeight = this.height;//获取图片真实高度  
         var imgWidth, imgHeight;  
-        var scale = 0.9;//缩放尺寸，当图片真实宽度和高度大于窗口宽度和高度时进行缩放  
+        var scale = 0.95;//缩放尺寸，当图片真实宽度和高度大于窗口宽度和高度时进行缩放  
           
         if(realHeight>windowH*scale) {//判断图片高度  
             imgHeight = windowH*scale;//如大于窗口高度，图片高度进行缩放  
