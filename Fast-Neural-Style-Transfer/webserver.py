@@ -12,24 +12,29 @@ import glob
 import json
 import sqlite3
 
+from mySqlite import MySqLite
 import transfer
 #803dfc4a25ef2ab07807b0c1c3da72fd
-conn = sqlite3.connect('db/data.db')
-cursor = conn.cursor()
-cursor.execute('''CREATE TABLE  if not exists md5_to_file
+
+dbfile = 'db/data.db'
+mydb = MySqLite(dbfile)
+
+sql = '''CREATE TABLE  if not exists md5_to_file
        (md5 char(32) PRIMARY KEY     NOT NULL,
-       name TEXT    NOT NULL,
-       L);''')
-conn.commit()
+       name TEXT    NOT NULL
+       );'''
+mydb.create_table(sql)
 
 def getFilenameByMD5(md5):
-    res = cursor.execute('select name from md5_to_file where md5=?', [md5])
+    sql = 'select name from md5_to_file where md5=?'
+    res = mydb.fetchone(sql, md5)
     for row in res:
         return row[0]
     return None
 
 def addFilenameByMD5(md5, filename):
-    cursor.execute('insert into md5_to_file(md5, name) values(?,?)', [md5, filename])
+    sql = 'insert into md5_to_file(md5, name) values(?,?)'
+    mydb.insert(sql, [(md5, filename)])
 
 
 app = Flask(__name__,static_url_path='')
@@ -84,7 +89,7 @@ def isFileExist():
     filename = getFilenameByMD5(md5)
     if(filename != None):
         return {"status":"ok",     'file_exist':'true',      "file_name": filename}
-    return getResponse(message='false')
+    return {"status":"ok",     'file_exist':'false',      "file_name": filename}
 
 
 #上传图片
@@ -106,10 +111,8 @@ def upload_file():
             addFilenameByMD5(md5, filename)
             path = os.path.join('uploads', filename)
             f.save(path)
-        return {
-            "status":"ok",
-            "file_name": filename
-        }
+            print('md5:' + md5 + " filename:" + filename)
+        return { "status":"ok",     "file_name": filename }
 
 #开始风格迁移
 @app.route('/api/begin_style_transfer', methods=['GET', 'POST'])

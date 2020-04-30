@@ -31,6 +31,7 @@ $(document).ready(function () {
     });
 
     $('#file_upload').change(function () {
+        $('#style_list').find('img').attr('hidden', true)
         file_change(this.files);
     });
 
@@ -50,6 +51,12 @@ $(document).ready(function () {
     $('#style_list').delegate('.style_name', 'click', function(){
         console.log( "select style:" + $(this).html());
         let style_id = $(this).parent().attr('style_id')
+        if(g_current_img.uploaded == true)
+            $(this).parent().find('img').attr('src', 'ico/loading.gif')
+                .removeAttr('hidden')
+                .attr('class', 'img_center')
+            
+        
         if(style_id != undefined){
             style_id = parseInt(  style_id  )
             beginTransfer(style_id);
